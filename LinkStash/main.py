@@ -3,10 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from settings import get_settings
 from starlette_csrf import CSRFMiddleware
 import uvicorn
-app = FastAPI()
+app = FastAPI(title="LinkStash", description="A simple tool that manages your bookmarks and groups them via tags", version="1.0.0",docs_url="/docs",redoc_url="/redoc")
 settings= get_settings()
 app.add_middleware(CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
