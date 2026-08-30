@@ -5,7 +5,8 @@ from  database.session import get_db
 from  bookmarks.service import BookmarkService
 from typing import List
 from bookmarks.schema import Bookmark
-router = APIRouter(prefix="/bookmarks", tags=["bookmarks"])
+from user.utils import get_current_user
+router = APIRouter(prefix="/bookmarks", tags=["bookmarks"],dependencies=[Depends(get_current_user)])
 def get_service(session:Session = Depends(get_db)) -> BookmarkService:
     return BookmarkService(session)
 @router.post("/", )

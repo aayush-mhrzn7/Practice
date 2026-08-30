@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from user.utils import get_current_user
 from  database.session import get_db
 from  tags.service import TagService
 from typing import List
 from tags.schema import Tag
-router = APIRouter(prefix="/tags", tags=["tags"])
+router = APIRouter(prefix="/tags", tags=["tags"],dependencies=[Depends(get_current_user)])
 def get_service(session:Session = Depends(get_db)) -> TagService:
     return TagService(session)
 @router.post("/", )
