@@ -1,13 +1,30 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+
+from exceptions import APIErrorResponse, register_exception_handlers
 from settings import get_settings
 # from starlette_csrf import CSRFMiddleware
 from user.routes import router as user_router
 from tags.routes import router as tag_router
 from bookmarks.routes import router as bookmark_router
-import uvicorn
-app = FastAPI(title="LinkStash", description="A simple tool that manages your bookmarks and groups them via tags", version="1.0.0",docs_url="/docs",redoc_url="/redoc")
-settings= get_settings()
+
+app = FastAPI(
+    title="LinkStash",
+    description="A simple tool that manages your bookmarks and groups them via tags",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    responses={
+        422: {
+            "model": APIErrorResponse,
+            "description": "Request or payload validation failed",
+        },
+    },
+)
+settings = get_settings()
+register_exception_handlers(app)
+
 app.add_middleware(CORSMiddleware,
     allow_origins=["http://localhost:8000"],
     allow_credentials=True,
