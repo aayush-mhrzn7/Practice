@@ -99,9 +99,9 @@ def _clear(db):
 def _tags(db, names: list[str]) -> dict[str, Tag]:
     by_name: dict[str, Tag] = {}
     for name in names:
-        tag = db.query(Tag).filter(Tag.name == name).first()
+        tag = db.query(Tag).filter(Tag.name == name.lower()).first()
         if tag is None:
-            tag = Tag(name=name)
+            tag = Tag(name=name.lower())
             db.add(tag)
             db.flush()
         by_name[name] = tag
@@ -120,7 +120,7 @@ def _user(db, email: str, name: str, bio: str, tag_names: list[str], bookmarks: 
     tags = _tags(db, tag_names)
     user.tags.extend(tags[name] for name in tag_names)
     for url, title, bookmark_tag_names in bookmarks:
-        bookmark = Bookmark(url=url, title=title, user_id=user.id)
+        bookmark = Bookmark(url=url, title=title, user_id=user.id, notes=None)
         bookmark.tags.extend(tags[name] for name in bookmark_tag_names)
         db.add(bookmark)
 

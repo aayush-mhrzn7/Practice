@@ -1,6 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
-from sqlalchemy import String, DateTime, Integer, Table, ForeignKey, Column
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table, func
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from database.session import Base
 
@@ -14,14 +14,16 @@ class Tag(Base):
     bookmarks: Mapped[list["Bookmark"]] = relationship(
         "Bookmark", secondary="bookmark_tags", back_populates="tags"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
 bookmark_tags = Table(
     "bookmark_tags",
     Base.metadata,
-    Column("bookmark_id", ForeignKey("bookmarks.id"), primary_key=True),
-    Column("tag_id", ForeignKey("tags.id"), primary_key=True),
+    Column("bookmark_id", ForeignKey("bookmarks.id", ondelete="CASCADE"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
 )
 
 user_tags = Table(

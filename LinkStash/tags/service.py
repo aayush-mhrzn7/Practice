@@ -15,10 +15,10 @@ class TagService:
         return self.db.query(Tag).filter(Tag.users.any(User.id == user.id))
 
     def get_tag_by_name(self, name: str) -> Tag | None:
-        return self.db.query(Tag).filter(Tag.name == name).first()
+        return self.db.query(Tag).filter(Tag.name == name.strip().lower()).first()
 
     def create_tag(self, tag: TagSchema, user: User) -> Tag:
-        name = tag.name.strip()
+        name = tag.name.strip().lower()
         if not name:
             raise HTTPException(status_code=400, detail="Tag name is required")
 
@@ -62,7 +62,7 @@ class TagService:
 
     def update_tag(self, tag_id: int, tag: TagSchema, user: User) -> Tag:
         db_tag = self.get_tag(tag_id, user)
-        name = tag.name.strip()
+        name = tag.name.strip().lower()
         if not name:
             raise HTTPException(status_code=400, detail="Tag name is required")
         db_tag.name = name
@@ -70,11 +70,10 @@ class TagService:
         self.db.refresh(db_tag)
         return db_tag
 
-    def delete_tag(self, tag_id: int, user: User) -> bool:
+    def delete_tag(self, tag_id: int, user: User) -> None:
         db_tag = self.get_tag(tag_id, user)
         user.tags.remove(db_tag)
         self.db.flush()
         if not db_tag.users and not db_tag.bookmarks:
             self.db.delete(db_tag)
         self.db.commit()
-        return True

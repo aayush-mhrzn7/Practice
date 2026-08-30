@@ -45,7 +45,7 @@ app.include_router(user_router)
 app.include_router(tag_router)
 app.include_router(bookmark_router)
 
-@app.get("/")
+@app.get("/health")
 async def health_check():
     """
     Health check endpoint to verify the server is running.

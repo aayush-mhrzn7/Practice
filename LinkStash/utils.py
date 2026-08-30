@@ -19,6 +19,8 @@ LIST_QUERY_KEYS = {
     "title__contains",
     "id__gt",
     "id__lt",
+    "tag",
+    "q",
 }
 
 

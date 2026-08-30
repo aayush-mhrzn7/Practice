@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy.orm import Session
 
 from database.session import get_db
@@ -59,10 +59,11 @@ def update_tag(
     return tag_service.update_tag(tag_id, tag, current_user)
 
 
-@router.delete("/{tag_id}", response_model=bool)
+@router.delete("/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_tag(
     tag_id: int,
     tag_service: TagService = Depends(get_service),
     current_user: User = Depends(get_current_user),
 ):
-    return tag_service.delete_tag(tag_id, current_user)
+    tag_service.delete_tag(tag_id, current_user)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
