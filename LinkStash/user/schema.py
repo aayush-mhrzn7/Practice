@@ -16,6 +16,10 @@ class UserLoginResponse(BaseModel):
     refresh_token: str
     token_type: str
 
+
+class TokenRefresh(BaseModel):
+    refresh_token: str
+
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int

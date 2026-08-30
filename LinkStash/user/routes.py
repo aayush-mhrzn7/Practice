@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 
 from database.session import get_db
 from user.models import User
-from user.schema import User as UserCreate, UserLogin, UserLoginResponse, UserOut
+from user.schema import User as UserCreate, UserLogin, UserLoginResponse, UserOut, TokenRefresh
 from user.service import UserService
-from user.utils import create_token, get_current_user, hash_password, verify_password
+from user.utils import create_token, get_current_user, hash_password, verify_password, verify_token
 from utils import Paginated, list_params, query_filters
 
 
@@ -40,6 +40,30 @@ def login(
         "refresh_token": create_token({"sub": str(user_exists.id)}, ttl=60 * 60 * 24 * 30, type="refresh"),
         "token_type": "Bearer",
     }
+
+
+@router.post("/refresh", response_model=UserLoginResponse)
+def refresh(body: TokenRefresh, service: UserService = Depends(get_service)):
+    payload = verify_token(body.refresh_token)
+    if payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})
+    try:
+        user_id = int(payload["sub"])
+    except (TypeError, ValueError, KeyError):
+        raise HTTPException(status_code=401, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})
+    user = service.get_user_by_id(user_id)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})
+    return {
+        "access_token": create_token({"sub": str(user.id)}),
+        "refresh_token": create_token({"sub": str(user.id)}, ttl=60 * 60 * 24 * 30, type="refresh"),
+        "token_type": "Bearer",
+    }
+
+
+@router.get("/me", response_model=UserOut)
+def me(current_user: User = Depends(get_current_user)):
+    return current_user
 
 
 @router.get("/", response_model=Paginated[UserOut])
