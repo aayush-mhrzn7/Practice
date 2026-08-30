@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from  database.session import get_db
@@ -12,7 +12,7 @@ def get_service(session:Session = Depends(get_db)) -> BookmarkService:
 @router.post("/")
 def create_bookmark(
     bookmark,
-    x_csrftoken: str = Header(alias="x-csrftoken"),
+    # x_csrftoken: str = Header(alias="x-csrftoken"),
     bookmark_service: BookmarkService = Depends(get_service),
 ):
             return bookmark_service.create_bookmark(bookmark)
@@ -29,7 +29,7 @@ def get_bookmark(bookmark_id: int, bookmark_service: BookmarkService = Depends(g
 def update_bookmark(
     bookmark_id: int,
     bookmark: Bookmark,
-    x_csrftoken: str = Header(alias="x-csrftoken"),
+    # x_csrftoken: str = Header(alias="x-csrftoken"),
     bookmark_service: BookmarkService = Depends(get_service),
 ):
     return bookmark_service.update_bookmark(bookmark_id, bookmark)
@@ -37,7 +37,7 @@ def update_bookmark(
 @router.delete("/{bookmark_id}", response_model=bool)
 def delete_bookmark(
     bookmark_id: int,
-    x_csrftoken: str = Header(alias="x-csrftoken"),
+    # x_csrftoken: str = Header(alias="x-csrftoken"),
     bookmark_service: BookmarkService = Depends(get_service),
 ):
     return bookmark_service.delete_bookmark(bookmark_id)

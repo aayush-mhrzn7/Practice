@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from settings import get_settings
-from starlette_csrf import CSRFMiddleware
+# from starlette_csrf import CSRFMiddleware
 from user.routes import router as user_router
 from tags.routes import router as tag_router
 from bookmarks.routes import router as bookmark_router
@@ -14,14 +14,15 @@ app.add_middleware(CORSMiddleware,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-app.add_middleware(
-    CSRFMiddleware,
-    secret=settings.CSRF_SECRET_KEY,
-    cookie_name="csrf_token",
-    header_name="x-csrftoken",
-    cookie_secure=settings.PROD,    # True in production with HTTPS
-    cookie_samesite="lax",           # lax in development, strict in production
-)
+# CSRF Middleware is disabled for development 
+# app.add_middleware(
+#     CSRFMiddleware,
+#     secret=settings.CSRF_SECRET_KEY,
+#     cookie_name="csrf_token",
+#     header_name="x-csrftoken",
+#     cookie_secure=settings.PROD,    # True in production with HTTPS
+#     cookie_samesite="lax",           # lax in development, strict in production
+# )
 
 app.include_router(user_router)
 app.include_router(tag_router)

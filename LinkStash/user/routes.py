@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from user.utils import create_token, get_current_user, hash_password, verify_password
 from database.session import get_db
 from user.service import UserService
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.post("/signup", response_model=UserOut)
 def signup(
     user: User,
-    x_csrftoken: str = Header(alias="x-csrftoken"),
+    # x_csrftoken: str = Header(alias="x-csrftoken"),
     service: UserService = Depends(get_service),
 ):
     user_exists = service.get_user_by_email(user.email)
@@ -28,7 +28,7 @@ def signup(
 @router.post("/login", response_model=User)
 def login(
     user: User,
-    x_csrftoken: str = Header(alias="x-csrftoken"),
+    # x_csrftoken: str = Header(alias="x-csrftoken"),
     service: UserService = Depends(get_service),
 ):
     user = service.get_user_by_email(user.email)
