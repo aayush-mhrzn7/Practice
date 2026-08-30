@@ -8,6 +8,9 @@ class Tag(Base):
     __tablename__ = "tags"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    users: Mapped[list["User"]] = relationship(
+        "User", secondary="user_tags", back_populates="tags"
+    )
     bookmarks: Mapped[list["Bookmark"]] = relationship(
         "Bookmark", secondary="bookmark_tags", back_populates="tags"
     )
@@ -18,5 +21,12 @@ bookmark_tags = Table(
     "bookmark_tags",
     Base.metadata,
     Column("bookmark_id", ForeignKey("bookmarks.id"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id"), primary_key=True),
+)
+
+user_tags = Table(
+    "user_tags",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id"), primary_key=True),
     Column("tag_id", ForeignKey("tags.id"), primary_key=True),
 )

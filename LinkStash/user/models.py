@@ -12,5 +12,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     bio: Mapped[str] = mapped_column(String, nullable=True)
     bookmarks: Mapped[list["Bookmark"]] = relationship("Bookmark", back_populates="user")
+    tags: Mapped[list["Tag"]] = relationship("Tag", secondary="user_tags", back_populates="users")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+

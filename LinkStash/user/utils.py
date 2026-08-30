@@ -68,7 +68,8 @@ def get_current_user(
     except (TypeError, ValueError, KeyError):
         raise _unauthorized()
 
-    return {
-        "id": user_id,
-        "payload": payload["sub"]
-    }
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise _unauthorized()
+    return user
+
