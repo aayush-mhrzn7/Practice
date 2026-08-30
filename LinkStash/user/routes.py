@@ -6,7 +6,7 @@ from user.models import User
 from user.schema import User as UserCreate, UserLogin, UserLoginResponse, UserOut
 from user.service import UserService
 from user.utils import create_token, get_current_user, hash_password, verify_password
-from utils import Paginated, pagination_params, query_filters
+from utils import Paginated, list_params, query_filters
 
 
 def get_service(session: Session = Depends(get_db)) -> UserService:
@@ -47,13 +47,14 @@ def get_users(
     request: Request,
     service: UserService = Depends(get_service),
     current_user: User = Depends(get_current_user),
-    pagination: dict = Depends(pagination_params),
+    pagination: dict = Depends(list_params),
 ):
     return service.get_all_users(
         current_user,
-        filters=query_filters(request),
+        filters={**query_filters(request), **pagination["filters"]},
         page=pagination["page"],
         page_size=pagination["page_size"],
+        sort_dir=pagination["sort_dir"],
     )
 
 

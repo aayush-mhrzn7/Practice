@@ -30,12 +30,20 @@ class UserService:
     def get_user_by_email(self, email: str) -> User | None:
         return self.db.query(User).filter(User.email == email).first()
 
-    def get_all_users(self, current_user: User, filters: dict | None = None, page: int = 1, page_size: int = 10):
+    def get_all_users(
+        self,
+        current_user: User,
+        filters: dict | None = None,
+        page: int = 1,
+        page_size: int = 10,
+        sort_dir: str = "desc",
+    ):
         return get_paginated(
             self.db,
             User,
             filters=filters,
             page=page,
             page_size=page_size,
+            sort_dir=sort_dir,
             query=self.db.query(User).filter(User.id == current_user.id),
         )

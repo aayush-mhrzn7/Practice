@@ -6,7 +6,7 @@ from bookmarks.service import BookmarkService
 from database.session import get_db
 from user.models import User
 from user.utils import get_current_user
-from utils import Paginated, pagination_params, query_filters
+from utils import Paginated, list_params, query_filters
 
 router = APIRouter(prefix="/bookmarks", tags=["bookmarks"], dependencies=[Depends(get_current_user)])
 
@@ -29,13 +29,14 @@ def get_bookmarks(
     request: Request,
     bookmark_service: BookmarkService = Depends(get_service),
     current_user: User = Depends(get_current_user),
-    pagination: dict = Depends(pagination_params),
+    pagination: dict = Depends(list_params),
 ):
     return bookmark_service.get_all_bookmarks(
         current_user,
-        filters=query_filters(request),
+        filters={**query_filters(request), **pagination["filters"]},
         page=pagination["page"],
         page_size=pagination["page_size"],
+        sort_dir=pagination["sort_dir"],
     )
 
 

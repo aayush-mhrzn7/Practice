@@ -27,13 +27,21 @@ class BookmarkService:
             raise HTTPException(status_code=404, detail="Bookmark not found")
         return db_bookmark
 
-    def get_all_bookmarks(self, user: User, filters: dict | None = None, page: int = 1, page_size: int = 10):
+    def get_all_bookmarks(
+        self,
+        user: User,
+        filters: dict | None = None,
+        page: int = 1,
+        page_size: int = 10,
+        sort_dir: str = "desc",
+    ):
         return get_paginated(
             self.db,
             Bookmark,
             filters=filters,
             page=page,
             page_size=page_size,
+            sort_dir=sort_dir,
             query=self._owned(user),
         )
 
