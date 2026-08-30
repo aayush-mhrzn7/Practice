@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from bookmarks.models import Bookmark
-from LinkStash.utils import get_paginated
+from  utils import get_paginated
 from typing import List
 class BookmarkService:
     def __init__(self,db:Session) -> None:

@@ -1,7 +1,6 @@
-from pydoc import get_pager
 from sqlalchemy.orm import Session
 from typing import List
-from LinkStash.utils import get_paginated
+from  utils import get_paginated
 from user.models import User
 class UserService:
     def __init__(self,db:Session) -> None:

@@ -1,8 +1,8 @@
 
-from sqlalchemy.exc import List
+from typing import List
 from sqlalchemy.orm import Session
-from LinkStash.utils import get_paginated
-from tags.models import Tag, Tagq
+from utils import get_paginated
+from tags.models import Tag
 class TagService:
     def __init__(self,db:Session) -> None:
         self.db = db
