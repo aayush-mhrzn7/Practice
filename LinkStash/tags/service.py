@@ -1,16 +1,18 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 
-from utils import get_paginated
 from tags.models import Tag
 from tags.schema import Tag as TagSchema
 from user.models import User
+from utils import get_paginated
 
 
 class TagService:
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def _owned(self, user: User):
+        return self.db.query(Tag).filter(Tag.users.any(User.id == user.id))
 
     def get_tag_by_name(self, name: str) -> Tag | None:
         return self.db.query(Tag).filter(Tag.name == name).first()
@@ -34,22 +36,37 @@ class TagService:
         self.db.refresh(db_tag)
         return db_tag
 
-    def get_tag(self, tag_id: int) -> Tag:
-        return self.db.query(Tag).filter(Tag.id == tag_id).first()
-
-    def get_all_tags(self, filters: dict = {}) -> List[Tag]:
-        return get_paginated(self.db, Tag, filters=filters, page=1, page_size=10)
-
-    def update_tag(self, tag_id: int, tag: TagSchema) -> Tag:
-        db_tag = self.get_tag(tag_id)
+    def get_tag(self, tag_id: int, user: User) -> Tag:
+        db_tag = self._owned(user).filter(Tag.id == tag_id).first()
         if db_tag is None:
             raise HTTPException(status_code=404, detail="Tag not found")
-        db_tag.name = tag.name.strip()
+        return db_tag
+
+    def get_all_tags(self, user: User, filters: dict | None = None, page: int = 1, page_size: int = 10):
+        return get_paginated(
+            self.db,
+            Tag,
+            filters=filters,
+            page=page,
+            page_size=page_size,
+            query=self._owned(user),
+        )
+
+    def update_tag(self, tag_id: int, tag: TagSchema, user: User) -> Tag:
+        db_tag = self.get_tag(tag_id, user)
+        name = tag.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Tag name is required")
+        db_tag.name = name
         self.db.commit()
         self.db.refresh(db_tag)
         return db_tag
 
-    def delete_tag(self, tag_id: int) -> bool:
-        self.db.query(Tag).filter(Tag.id == tag_id).delete()
+    def delete_tag(self, tag_id: int, user: User) -> bool:
+        db_tag = self.get_tag(tag_id, user)
+        user.tags.remove(db_tag)
+        self.db.flush()
+        if not db_tag.users and not db_tag.bookmarks:
+            self.db.delete(db_tag)
         self.db.commit()
         return True

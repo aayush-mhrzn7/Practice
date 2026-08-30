@@ -1,43 +1,67 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
-from  database.session import get_db
-from  bookmarks.service import BookmarkService
-from typing import List
-from bookmarks.schema import Bookmark
+from bookmarks.schema import Bookmark, BookmarkCreate
+from bookmarks.service import BookmarkService
+from database.session import get_db
+from user.models import User
 from user.utils import get_current_user
-router = APIRouter(prefix="/bookmarks", tags=["bookmarks"],dependencies=[Depends(get_current_user)])
-def get_service(session:Session = Depends(get_db)) -> BookmarkService:
-    return BookmarkService(session)
-@router.post("/")
-def create_bookmark(
-    bookmark,
-    # x_csrftoken: str = Header(alias="x-csrftoken"),
-    bookmark_service: BookmarkService = Depends(get_service),
-):
-            return bookmark_service.create_bookmark(bookmark)
+from utils import Paginated, pagination_params, query_filters
 
-@router.get("/", response_model=List[Bookmark])
-def get_bookmarks(bookmark_service: BookmarkService = Depends(get_service)):
-            return bookmark_service.get_all_bookmarks()
+router = APIRouter(prefix="/bookmarks", tags=["bookmarks"], dependencies=[Depends(get_current_user)])
+
+
+def get_service(session: Session = Depends(get_db)) -> BookmarkService:
+    return BookmarkService(session)
+
+
+@router.post("/", response_model=Bookmark)
+def create_bookmark(
+    bookmark: BookmarkCreate,
+    bookmark_service: BookmarkService = Depends(get_service),
+    current_user: User = Depends(get_current_user),
+):
+    return bookmark_service.create_bookmark(bookmark, current_user)
+
+
+@router.get("/", response_model=Paginated[Bookmark])
+def get_bookmarks(
+    request: Request,
+    bookmark_service: BookmarkService = Depends(get_service),
+    current_user: User = Depends(get_current_user),
+    pagination: dict = Depends(pagination_params),
+):
+    return bookmark_service.get_all_bookmarks(
+        current_user,
+        filters=query_filters(request),
+        page=pagination["page"],
+        page_size=pagination["page_size"],
+    )
+
 
 @router.get("/{bookmark_id}", response_model=Bookmark)
-def get_bookmark(bookmark_id: int, bookmark_service: BookmarkService = Depends(get_service)):
-    return bookmark_service.get_bookmark(bookmark_id)
+def get_bookmark(
+    bookmark_id: int,
+    bookmark_service: BookmarkService = Depends(get_service),
+    current_user: User = Depends(get_current_user),
+):
+    return bookmark_service.get_bookmark(bookmark_id, current_user)
+
 
 @router.put("/{bookmark_id}", response_model=Bookmark)
 def update_bookmark(
     bookmark_id: int,
-    bookmark: Bookmark,
-    # x_csrftoken: str = Header(alias="x-csrftoken"),
+    bookmark: BookmarkCreate,
     bookmark_service: BookmarkService = Depends(get_service),
+    current_user: User = Depends(get_current_user),
 ):
-    return bookmark_service.update_bookmark(bookmark_id, bookmark)
+    return bookmark_service.update_bookmark(bookmark_id, bookmark, current_user)
+
 
 @router.delete("/{bookmark_id}", response_model=bool)
 def delete_bookmark(
     bookmark_id: int,
-    # x_csrftoken: str = Header(alias="x-csrftoken"),
     bookmark_service: BookmarkService = Depends(get_service),
+    current_user: User = Depends(get_current_user),
 ):
-    return bookmark_service.delete_bookmark(bookmark_id)
+    return bookmark_service.delete_bookmark(bookmark_id, current_user)
