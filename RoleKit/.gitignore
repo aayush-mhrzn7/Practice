@@ -4,10 +4,7 @@ __pycache__
 *.pyc
 *.pyo
 *.pyd
-*.pyw
-*.pyz
-*.pywz
-*.pyzw
-*.pyzwz
-*.pyzwzw
-*.pyzwzwz
+*.db
+web/node_modules
+web/dist
+.DS_Store

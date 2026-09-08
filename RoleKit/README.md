@@ -4,7 +4,7 @@ A one-day learning bar: a small admin for **named roles**. Not a product. No Cel
 
 The JWT only carries your **user id**. Every protected route reloads roles and permissions from SQLAlchemy. The checkboxes never authorize anything by themselves.
 
-This README is the build map. Read it top to bottom, then follow the evenings. Pseudo-code is the contract. Write the real files against it.
+This README is the map of how RoleKit works. The code is already in `api/` and `web/`. Use the evenings as a walkthrough of the design, then cold-start and prove a 403.
 
 ---
 
@@ -43,22 +43,15 @@ RoleKit/
       documents.py  # the gated resource
     seed.py
   alembic/
-  web/               # Vite + React
-    src/pages/Login.jsx
-    src/pages/Documents.jsx
-    src/pages/Roles.jsx
-    src/pages/Users.jsx
+  web/               # Vite + React + TypeScript
+    src/pages/Login.tsx
+    src/pages/Documents.tsx
+    src/pages/Roles.tsx
+    src/pages/Users.tsx
   README.md
 ```
 
-**Move map from what you already have**
-
-| Now | Target |
-|---|---|
-| `main.py` | `api/main.py` |
-| `database/session.py` | `api/database.py` |
-| `database/models.py` | `api/models.py` — add `Document`, unique constraints, association tables |
-| `routers/users.py` | split into `api/auth.py` + `api/routers/auth.py` + `api/routers/users.py` |
+The tree above is what is in this folder. Run from `RoleKit/`. Uvicorn loads `api.main:app`.
 
 ---
 
@@ -560,9 +553,9 @@ curl -X DELETE .../documents/1     # 403
 npm create vite@latest web -- --template react
 ```
 
-- `Login.jsx` — POST login, store token (`localStorage`)
+- `Login.tsx` — POST login, store token (`localStorage`)
 - Axios/fetch interceptor: every request `Authorization: Bearer`
-- `Documents.jsx` — list, create, edit, delete
+- `Documents.tsx` — list, create, edit, delete
 - On 403, render the body as **`no permission`**
 - After login, `GET /me` to know `is_admin` and codes
 
@@ -591,7 +584,7 @@ api(method, url, body):
 
 ### Evening 5 — The checkbox page (the point of the week)
 
-**Roles.jsx**
+**Roles.tsx**
 
 ```
 state: name, read, write, edit, delete   # four booleans
@@ -608,7 +601,7 @@ onSave:
 
 Unchecking Edit means the next PATCH sends `["documents:read"]` with no edit. Server replaces. Do not send `{ remove: "documents:edit" }`.
 
-**Users.jsx**
+**Users.tsx**
 
 ```
 pick user
@@ -648,11 +641,11 @@ onSave:
 
 ## React pages (contract)
 
-### `Login.jsx`
+### `Login.tsx`
 
 Form: email, password → `POST /auth/login` → store token → `GET /me` → `/documents`.
 
-### `Documents.jsx`
+### `Documents.tsx`
 
 - List from `GET /documents`
 - Create form if UI has `documents:write` (still 403 if someone forges)
@@ -660,11 +653,11 @@ Form: email, password → `POST /auth/login` → store token → `GET /me` → `
 - Delete if `documents:delete`
 - Any 403 body → show `no permission`
 
-### `Roles.jsx` (admin)
+### `Roles.tsx` (admin)
 
 Name field + four checkboxes: Read, Write, Edit, Delete → the four codes. Save sends name + checked codes. Load existing role by mapping codes back to checks.
 
-### `Users.jsx` (admin)
+### `Users.tsx` (admin)
 
 User select + role checks. Save diffs grants/revokes. Do not PUT a whole user blob unless you also implement that; the spec is POST/DELETE per role.
 
@@ -680,34 +673,40 @@ is_admin from /me, not from JWT payload
 
 ## Cold start
 
-From `RoleKit/` after evenings are done:
+From `RoleKit/`:
 
 ```bash
-# API
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-cd api && alembic upgrade head
-python seed.py
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
+alembic upgrade head
+python -m api.seed
+uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
+```
 
-# Web (second terminal)
+Second terminal:
+
+```bash
 cd web
 npm install
 npm run dev
 ```
 
-If `uvicorn` is run from `RoleKit/` not `api/`, set `APP_MODULE` accordingly (`api.main:app`) and keep one style. Pick one working directory and write it here when you wire it.
+Open `http://localhost:5173`. API is `http://localhost:8000`. CORS is locked to the Vite origin.
 
-**Suggested seed logins** (set these in `seed.py` and keep them):
+Logout only drops the token in `localStorage`. The JWT stays valid until it expires (8 hours). There is no denylist.
+
+**Seed logins**
 
 | email | password | flags | document codes |
 |---|---|---|---|
-| `admin@rolekit.dev` | `adminpass` | `is_admin` | none unless you assign |
+| `admin@rolekit.dev` | `adminpass` | `is_admin` | none |
 | `viewer@rolekit.dev` | `viewerpass` | | `documents:read` |
 | `editor@rolekit.dev` | `editorpass` | | read, write, edit |
+| `demo1@rolekit.dev` | `demopass` | | none |
+| `demo2@rolekit.dev` | `demopass` | | none |
 
-Smoke both logins after seed.
+Smoke viewer and admin after seed. Admin can open Roles/Users but `GET /documents` is 403 until you grant a document role. That is intentional: `is_admin` is not a document superuser.
 
 ---
 
@@ -751,7 +750,7 @@ Use this after evening 5.
 
 8. **Do not invent permission codes in the UI.** The four checkboxes map to four strings. No free-text permission field.
 
-9. **Current code drift.** `routers/users.py` already hashes and puts `sub` in the JWT — keep that. Fix: move JWT helpers to `auth.py`, use `password_hash`, register as a real `POST` route, add expiry, stop hardcoding the secret in source (`.env`). Association tables can drop the extra `id`. Add `Document`. Unique indexes on `email`, `role.name`, `permission.code`.
+9. **JWT secret.** Override with `JWT_SECRET` in `.env`. The payload is only `sub` + `exp`.
 
 10. **No Celery.** If you reach for a queue, you left RoleKit.
 
@@ -770,9 +769,7 @@ bcrypt
 python-dotenv
 ```
 
-You already have fastapi, pyjwt, alembic, sqlalchemy. Add bcrypt (you import it in `routers/users.py`) and alembic config when you init.
-
-Web: Vite React. Axios optional. Fetch is enough.
+Web: Vite + React + TypeScript. `fetch` in `web/src/api.ts` attaches `Authorization: Bearer`.
 
 ---
 
@@ -780,28 +777,26 @@ Web: Vite React. Axios optional. Fetch is enough.
 
 Use this as a progress list. Do not start evening 4 until 1–3 are green.
 
-- [ ] `api/database.py` — engine, `get_db`
-- [ ] `api/models.py` — User, Role, Permission, Document, two M2Ms
-- [ ] Alembic env points at `Base.metadata`
-- [ ] Migration: users
-- [ ] Migration: permissions (four INSERT), roles, M2Ms, documents
-- [ ] `api/schemas.py`
-- [ ] `api/auth.py` — hash, JWT, `get_current_user`
-- [ ] `api/deps.py` — `require_admin`, `require_permission`
-- [ ] `api/routers/auth.py` — register 201, login, `/me`
-- [ ] `api/routers/roles.py` — create, replace codes, list
-- [ ] `api/routers/users.py` — grant, revoke, list users
-- [ ] `api/routers/documents.py` — four verbs, 204 on delete
-- [ ] `api/main.py` — CORS later locked to Vite
-- [ ] `api/seed.py`
-- [ ] `web` Login, Documents, Roles, Users
-- [ ] Proof: night-editor PATCH 200, DELETE 403 from the UI
-- [ ] Proof: revoke then PATCH 403 with the same token
+- [x] `api/database.py` — engine, `get_db`
+- [x] `api/models.py` — User, Role, Permission, Document, two M2Ms
+- [x] Alembic env points at `Base.metadata`
+- [x] Migration: users
+- [x] Migration: permissions (four INSERT), roles, M2Ms, documents
+- [x] `api/schemas.py`
+- [x] `api/auth.py` — hash, JWT, `get_current_user`
+- [x] `api/deps.py` — `require_admin`, `require_permission`
+- [x] `api/routers/auth.py` — register 201, login, `/me`
+- [x] `api/routers/roles.py` — create, replace codes, list
+- [x] `api/routers/users.py` — grant, revoke, list users
+- [x] `api/routers/documents.py` — four verbs, 204 on delete
+- [x] `api/main.py` — CORS locked to Vite
+- [x] `api/seed.py`
+- [x] `web` Login, Documents, Roles, Users
+- [ ] Proof on your machine: night-editor PATCH 200, DELETE 403 from the UI
+- [ ] Proof on your machine: revoke then PATCH 403 with the same token
 
 ---
 
 ## Status of this folder today
 
-Skeleton only. `main.py` is a health check. Models have User/Role/Permission and both M2Ms, but no `Document`, no unique constraints, and extra surrogate keys on the association tables. `routers/users.py` has hash/login helpers that are not mounted as routes. There is no Alembic env, no JWT dependency, no `require_permission`, no React app.
-
-Follow the evenings. Do not expand the scope. When the checkbox page can create `night-editor` and the server 403s a DELETE, RoleKit is done.
+Implemented. Walk the grant/revoke section from the UI to prove it: create `night-editor`, tick Read and Edit, assign it, PATCH works, DELETE shows `no permission`. Then revoke and PATCH again with the same token — still 403.

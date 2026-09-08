@@ -1,0 +1,71 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session, selectinload
+
+from api.database import get_db
+from api.deps import require_admin
+from api.models import Role, User
+from api.schemas import RoleBrief, UserListOut
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+def _user_list_out(user: User) -> UserListOut:
+    return UserListOut(
+        id=user.id,
+        email=user.email,
+        is_admin=user.is_admin,
+        roles=[RoleBrief.model_validate(role) for role in user.roles],
+    )
+
+
+@router.get("", response_model=list[UserListOut])
+def list_users(
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    users = (
+        db.query(User)
+        .options(selectinload(User.roles))
+        .order_by(User.email)
+        .all()
+    )
+    return [_user_list_out(user) for user in users]
+
+
+@router.post("/{user_id}/roles/{role_id}", response_model=UserListOut)
+def grant_role(
+    user_id: int,
+    role_id: int,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).options(selectinload(User.roles)).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    role = db.get(Role, role_id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
+    if role not in user.roles:
+        user.roles.append(role)
+        db.commit()
+        db.refresh(user)
+    return _user_list_out(user)
+
+
+@router.delete("/{user_id}/roles/{role_id}", response_model=UserListOut)
+def revoke_role(
+    user_id: int,
+    role_id: int,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).options(selectinload(User.roles)).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    role = next((r for r in user.roles if r.id == role_id), None)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not assigned")
+    user.roles.remove(role)
+    db.commit()
+    db.refresh(user)
+    return _user_list_out(user)

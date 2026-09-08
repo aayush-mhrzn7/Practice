@@ -1,4 +1,6 @@
 fastapi[standard]
-pyjwt
+sqlalchemy
 alembic
-sqlalchemy 
+pyjwt
+bcrypt
+python-dotenv
