@@ -1,43 +1,40 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, isApiError } from "../api";
-import type { PermissionCode, RoleOut } from "../types";
+import type { PermissionGroup, RoleOut } from "../types";
 
-const CHECKS: { code: PermissionCode; label: string }[] = [
-  { code: "documents:read", label: "Read" },
-  { code: "documents:write", label: "Write" },
-  { code: "documents:edit", label: "Edit" },
-  { code: "documents:delete", label: "Delete" },
-];
+type Verb = "create" | "update" | "delete" | "read";
+
+const COLUMNS: Verb[] = ["create", "update", "delete", "read"];
 
 type RoleForm = {
   id: number | null;
   name: string;
-  checks: Record<PermissionCode, boolean>;
+  checks: Record<string, boolean>;
 };
 
-function emptyForm(): RoleForm {
-  return {
-    id: null,
-    name: "",
-    checks: {
-      "documents:read": false,
-      "documents:write": false,
-      "documents:edit": false,
-      "documents:delete": false,
-    },
-  };
+function verbOf(code: string): Verb | null {
+  const suffix = code.split(":")[1];
+  if (suffix === "write") return "create";
+  if (suffix === "edit") return "update";
+  if (suffix === "delete" || suffix === "read") return suffix;
+  return null;
 }
 
-function fromRole(role: RoleOut): RoleForm {
-  const checks = emptyForm().checks;
-  for (const code of role.permissions) {
-    if (code in checks) checks[code as PermissionCode] = true;
+function codesByVerb(group: PermissionGroup): Partial<Record<Verb, string>> {
+  const map: Partial<Record<Verb, string>> = {};
+  for (const item of group.permissions) {
+    const verb = verbOf(item.code);
+    if (verb) map[verb] = item.code;
   }
-  return { id: role.id, name: role.name, checks };
+  return map;
 }
 
-function codesFrom(checks: Record<PermissionCode, boolean>): PermissionCode[] {
-  return CHECKS.map((item) => item.code).filter((code) => checks[code]);
+function emptyChecks(groups: PermissionGroup[]): Record<string, boolean> {
+  const checks: Record<string, boolean> = {};
+  for (const group of groups) {
+    for (const item of group.permissions) checks[item.code] = false;
+  }
+  return checks;
 }
 
 function failMessage(err: unknown) {
@@ -47,24 +44,45 @@ function failMessage(err: unknown) {
 
 export default function Roles() {
   const [roles, setRoles] = useState<RoleOut[]>([]);
-  const [form, setForm] = useState<RoleForm>(emptyForm());
+  const [groups, setGroups] = useState<PermissionGroup[]>([]);
+  const [form, setForm] = useState<RoleForm>({ id: null, name: "", checks: {} });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
   async function load() {
-    const { data } = await api<RoleOut[]>("/roles");
-    setRoles(data);
+    const [rolesRes, catalogRes] = await Promise.all([
+      api<RoleOut[]>("/roles"),
+      api<PermissionGroup[]>("/permissions"),
+    ]);
+    setRoles(rolesRes.data);
+    setGroups(catalogRes.data);
+    setForm((current) => ({
+      ...current,
+      checks: { ...emptyChecks(catalogRes.data), ...current.checks },
+    }));
   }
 
   useEffect(() => {
     load().catch((err: unknown) => setError(failMessage(err)));
   }, []);
 
+  function applyRole(role: RoleOut) {
+    const checks = emptyChecks(groups);
+    for (const code of role.permissions) checks[code] = true;
+    setForm({ id: role.id, name: role.name, checks });
+  }
+
+  function toggle(code: string, on: boolean) {
+    setForm({ ...form, checks: { ...form.checks, [code]: on } });
+  }
+
   async function save(event: FormEvent) {
     event.preventDefault();
     setError("");
     setNotice("");
-    const permissions = codesFrom(form.checks);
+    const permissions = Object.entries(form.checks)
+      .filter(([, on]) => on)
+      .map(([code]) => code);
     try {
       let roleId = form.id;
       if (!roleId) {
@@ -76,7 +94,7 @@ export default function Roles() {
         body: { name: form.name, permissions },
       });
       setNotice(`Saved ${form.name} with ${permissions.join(", ") || "no codes"}.`);
-      setForm(emptyForm());
+      setForm({ id: null, name: "", checks: emptyChecks(groups) });
       await load();
     } catch (err) {
       setError(failMessage(err));
@@ -84,11 +102,12 @@ export default function Roles() {
   }
 
   return (
-    <main className="page">
+    <main className="page wide">
       <h1>Roles</h1>
       <p className="lede">
-        A role is a name plus four checks. Saving sends the full set of checked codes. Unchecking
-        removes that code on the server.
+        Tick cells in the matrix. Save sends the full set of checked codes. Create maps to{" "}
+        <code>:write</code>, update to <code>:edit</code>. Empty cells mean that resource has no
+        such code.
       </p>
       {error && <p className="banner error">{error}</p>}
       {notice && <p className="banner ok">{notice}</p>}
@@ -104,29 +123,55 @@ export default function Roles() {
             required
           />
         </label>
-        <fieldset className="checks">
-          <legend>Permissions</legend>
-          {CHECKS.map((item) => (
-            <label key={item.code} className="check">
-              <input
-                type="checkbox"
-                checked={form.checks[item.code]}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    checks: { ...form.checks, [item.code]: e.target.checked },
-                  })
-                }
-              />
-              {item.label}
-              <span className="muted">{item.code}</span>
-            </label>
-          ))}
-        </fieldset>
+        <div className="table-wrap">
+          <table className="perm-table">
+            <thead>
+              <tr>
+                <th>Resource</th>
+                {COLUMNS.map((col) => (
+                  <th key={col}>{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((group) => {
+                const verbs = codesByVerb(group);
+                return (
+                  <tr key={group.key}>
+                    <th scope="row">{group.label}</th>
+                    {COLUMNS.map((col) => {
+                      const code = verbs[col];
+                      return (
+                        <td key={col}>
+                          {code ? (
+                            <label className="cell-check">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(form.checks[code])}
+                                onChange={(e) => toggle(code, e.target.checked)}
+                                aria-label={`${group.label} ${col}`}
+                              />
+                            </label>
+                          ) : (
+                            <span className="muted">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
         <div className="row">
           <button type="submit">Save</button>
           {form.id && (
-            <button type="button" className="ghost" onClick={() => setForm(emptyForm())}>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => setForm({ id: null, name: "", checks: emptyChecks(groups) })}
+            >
               New role
             </button>
           )}
@@ -140,7 +185,7 @@ export default function Roles() {
               <h2>{role.name}</h2>
               <p className="muted">{role.permissions.join(", ") || "no codes"}</p>
             </div>
-            <button type="button" className="ghost" onClick={() => setForm(fromRole(role))}>
+            <button type="button" className="ghost" onClick={() => applyRole(role)}>
               Edit
             </button>
           </li>

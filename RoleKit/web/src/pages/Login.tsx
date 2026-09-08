@@ -22,7 +22,7 @@ export default function Login({ onAuthed }: LoginProps) {
       const data: TokenOut = await login(email, password);
       setToken(data.access_token);
       await onAuthed();
-      navigate("/documents");
+      navigate("/");
     } catch (err) {
       setError(isApiError(err) && err.status === 401 ? "Invalid credentials" : err instanceof Error ? err.message : "Request failed");
     } finally {
@@ -60,15 +60,19 @@ export default function Login({ onAuthed }: LoginProps) {
         <dl className="hints">
           <div>
             <dt>viewer@rolekit.dev</dt>
-            <dd>viewerpass — GET only</dd>
+            <dd>viewerpass — read docs, notes, board</dd>
           </div>
           <div>
             <dt>editor@rolekit.dev</dt>
-            <dd>editorpass — no delete</dd>
+            <dd>editorpass — write/edit; no delete</dd>
+          </div>
+          <div>
+            <dt>auditor@rolekit.dev</dt>
+            <dd>auditorpass — reads + audit log</dd>
           </div>
           <div>
             <dt>admin@rolekit.dev</dt>
-            <dd>adminpass — roles UI, no document codes</dd>
+            <dd>adminpass — roles UI, no resource codes</dd>
           </div>
         </dl>
       </div>

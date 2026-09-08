@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, selectinload
 from api.database import get_db
 from api.deps import require_admin
 from api.models import Role, User
+from api.routers.audit import record
 from api.schemas import RoleBrief, UserListOut
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -36,7 +37,7 @@ def list_users(
 def grant_role(
     user_id: int,
     role_id: int,
-    _: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     user = db.query(User).options(selectinload(User.roles)).filter(User.id == user_id).first()
@@ -47,6 +48,7 @@ def grant_role(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
     if role not in user.roles:
         user.roles.append(role)
+        record(db, admin.id, "grant", f"{user.email} + {role.name}")
         db.commit()
         db.refresh(user)
     return _user_list_out(user)
@@ -56,7 +58,7 @@ def grant_role(
 def revoke_role(
     user_id: int,
     role_id: int,
-    _: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     user = db.query(User).options(selectinload(User.roles)).filter(User.id == user_id).first()
@@ -66,6 +68,7 @@ def revoke_role(
     if role is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not assigned")
     user.roles.remove(role)
+    record(db, admin.id, "revoke", f"{user.email} - {role.name}")
     db.commit()
     db.refresh(user)
     return _user_list_out(user)

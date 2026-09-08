@@ -2,7 +2,18 @@ export type PermissionCode =
   | "documents:read"
   | "documents:write"
   | "documents:edit"
-  | "documents:delete";
+  | "documents:delete"
+  | "notes:read"
+  | "notes:write"
+  | "notes:edit"
+  | "notes:delete"
+  | "announcements:read"
+  | "announcements:write"
+  | "announcements:edit"
+  | "announcements:delete"
+  | "audit:read"
+  | "settings:read"
+  | "settings:edit";
 
 export type UserMe = {
   id: number;
@@ -33,10 +44,36 @@ export type RoleOut = {
   permissions: string[];
 };
 
-export type DocumentOut = {
+export type TitledOut = {
   id: number;
   title: string;
   body: string;
   owner_id: number;
   created_at: string;
+};
+
+export type DocumentOut = TitledOut;
+
+export type PermissionItem = {
+  code: string;
+  label: string;
+};
+
+export type PermissionGroup = {
+  key: string;
+  label: string;
+  permissions: PermissionItem[];
+};
+
+export type AuditEvent = {
+  id: number;
+  actor_id: number | null;
+  action: string;
+  detail: string;
+  created_at: string;
+};
+
+export type SettingOut = {
+  workspace_name: string;
+  banner: string;
 };

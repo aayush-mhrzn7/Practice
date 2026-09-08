@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 from api.database import get_db
 from api.deps import require_admin
 from api.models import PERMISSION_CODES, Permission, Role, User
+from api.routers.audit import record
 from api.schemas import RoleCreate, RoleOut, RoleUpdate
 
 router = APIRouter(prefix="/roles", tags=["roles"])
@@ -35,7 +36,7 @@ def list_roles(
 @router.post("", response_model=RoleOut, status_code=status.HTTP_201_CREATED)
 def create_role(
     body: RoleCreate,
-    _: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     role = Role(name=body.name.strip())
@@ -46,6 +47,8 @@ def create_role(
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Role name already exists")
     db.refresh(role)
+    record(db, admin.id, "role.create", role.name)
+    db.commit()
     return _role_out(role)
 
 
@@ -53,7 +56,7 @@ def create_role(
 def update_role(
     role_id: int,
     body: RoleUpdate,
-    _: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     role = db.query(Role).options(selectinload(Role.permissions)).filter(Role.id == role_id).first()
@@ -82,4 +85,7 @@ def update_role(
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Role name already exists")
     db.refresh(role)
+    codes = ", ".join(sorted(p.code for p in role.permissions)) or "none"
+    record(db, admin.id, "role.replace", f"{role.name}: {codes}")
+    db.commit()
     return _role_out(role)

@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 
 from api.auth import hash_password
 from api.database import SessionLocal
-from api.models import Document, Permission, Role, User
+from api.models import PERMISSION_CODES, Announcement, Document, Note, Permission, Role, Setting, User
 
 ADMIN_EMAIL = "admin@rolekit.dev"
 VIEWER_EMAIL = "viewer@rolekit.dev"
 EDITOR_EMAIL = "editor@rolekit.dev"
+AUDITOR_EMAIL = "auditor@rolekit.dev"
 DEMO1_EMAIL = "demo1@rolekit.dev"
 DEMO2_EMAIL = "demo2@rolekit.dev"
 
@@ -15,6 +16,7 @@ PASSWORDS = {
     ADMIN_EMAIL: "adminpass",
     VIEWER_EMAIL: "viewerpass",
     EDITOR_EMAIL: "editorpass",
+    AUDITOR_EMAIL: "auditorpass",
     DEMO1_EMAIL: "demopass",
     DEMO2_EMAIL: "demopass",
 }
@@ -45,10 +47,14 @@ def _get_or_create_role(db: Session, name: str) -> Role:
     return role
 
 
+def _assign(user: User, role: Role) -> None:
+    if role not in user.roles:
+        user.roles.append(role)
+
+
 def seed(db: Session) -> None:
     perms = {p.code: p for p in db.execute(select(Permission)).scalars()}
-    required = ("documents:read", "documents:write", "documents:edit", "documents:delete")
-    missing = [code for code in required if code not in perms]
+    missing = [code for code in PERMISSION_CODES if code not in perms]
     if missing:
         raise RuntimeError(
             f"Missing permission rows {missing}. Run `alembic upgrade head` first."
@@ -57,26 +63,60 @@ def seed(db: Session) -> None:
     admin = _get_or_create_user(db, ADMIN_EMAIL, is_admin=True)
     viewer_user = _get_or_create_user(db, VIEWER_EMAIL)
     editor_user = _get_or_create_user(db, EDITOR_EMAIL)
+    auditor_user = _get_or_create_user(db, AUDITOR_EMAIL)
     _get_or_create_user(db, DEMO1_EMAIL)
     _get_or_create_user(db, DEMO2_EMAIL)
 
     viewer_role = _get_or_create_role(db, "viewer")
     editor_role = _get_or_create_role(db, "editor")
+    auditor_role = _get_or_create_role(db, "auditor")
+    desk_role = _get_or_create_role(db, "desk")
 
-    viewer_role.permissions = [perms["documents:read"]]
+    viewer_role.permissions = [
+        perms["documents:read"],
+        perms["notes:read"],
+        perms["announcements:read"],
+    ]
     editor_role.permissions = [
         perms["documents:read"],
         perms["documents:write"],
         perms["documents:edit"],
+        perms["notes:read"],
+        perms["notes:write"],
+        perms["notes:edit"],
+        perms["announcements:read"],
+        perms["announcements:write"],
+        perms["announcements:edit"],
+    ]
+    auditor_role.permissions = [
+        perms["documents:read"],
+        perms["notes:read"],
+        perms["announcements:read"],
+        perms["audit:read"],
+    ]
+    desk_role.permissions = [
+        perms["settings:read"],
+        perms["settings:edit"],
+        perms["announcements:read"],
+        perms["announcements:write"],
+        perms["announcements:edit"],
+        perms["announcements:delete"],
     ]
 
-    if viewer_role not in viewer_user.roles:
-        viewer_user.roles.append(viewer_role)
-    if editor_role not in editor_user.roles:
-        editor_user.roles.append(editor_role)
+    _assign(viewer_user, viewer_role)
+    _assign(editor_user, editor_role)
+    _assign(auditor_user, auditor_role)
 
-    existing_docs = db.execute(select(Document)).scalars().all()
-    if not existing_docs:
+    if db.execute(select(Setting).where(Setting.id == 1)).scalar_one_or_none() is None:
+        db.add(
+            Setting(
+                id=1,
+                workspace_name="RoleKit",
+                banner="The JWT only carries your user id. Checkboxes never authorize anything.",
+            )
+        )
+
+    if not db.execute(select(Document)).scalars().first():
         db.add_all(
             [
                 Document(
@@ -92,6 +132,38 @@ def seed(db: Session) -> None:
             ]
         )
 
+    if not db.execute(select(Note)).scalars().first():
+        db.add_all(
+            [
+                Note(
+                    title="Shift handover",
+                    body="Viewer can read this. Editor can patch it. Neither can delete unless you grant notes:delete.",
+                    owner_id=admin.id,
+                ),
+                Note(
+                    title="Locker combo is not in the JWT",
+                    body="Revoke a role and the next request reloads from SQLAlchemy.",
+                    owner_id=admin.id,
+                ),
+            ]
+        )
+
+    if not db.execute(select(Announcement)).scalars().first():
+        db.add_all(
+            [
+                Announcement(
+                    title="Desk is open",
+                    body="Announcements are a separate resource. Same 403 rules, different codes.",
+                    owner_id=admin.id,
+                ),
+                Announcement(
+                    title="Auditor sees the log",
+                    body="Grant audit:read to watch grants and revokes. Settings stay dark unless you tick them.",
+                    owner_id=admin.id,
+                ),
+            ]
+        )
+
     db.commit()
 
 
@@ -100,11 +172,13 @@ def main() -> None:
     try:
         seed(db)
         print("Seeded RoleKit.")
-        print("  admin@rolekit.dev  / adminpass   (is_admin, no document roles)")
-        print("  viewer@rolekit.dev / viewerpass  (documents:read)")
-        print("  editor@rolekit.dev / editorpass  (read, write, edit)")
-        print("  demo1@rolekit.dev  / demopass")
-        print("  demo2@rolekit.dev  / demopass")
+        print("  admin@rolekit.dev   / adminpass    is_admin; no resource codes")
+        print("  viewer@rolekit.dev  / viewerpass   read documents, notes, announcements")
+        print("  editor@rolekit.dev  / editorpass   write/edit those three; no delete")
+        print("  auditor@rolekit.dev / auditorpass   reads + audit:read")
+        print("  demo1@rolekit.dev   / demopass")
+        print("  demo2@rolekit.dev   / demopass")
+        print("  desk role exists (settings + announcements CRUD) — assign it from Users")
     finally:
         db.close()
 

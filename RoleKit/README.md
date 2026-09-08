@@ -44,8 +44,13 @@ RoleKit/
     seed.py
   alembic/
   web/               # Vite + React + TypeScript
+    src/pages/Home.tsx
     src/pages/Login.tsx
     src/pages/Documents.tsx
+    src/pages/Notes.tsx
+    src/pages/Announcements.tsx
+    src/pages/Audit.tsx
+    src/pages/Settings.tsx
     src/pages/Roles.tsx
     src/pages/Users.tsx
   README.md
@@ -698,15 +703,18 @@ Logout only drops the token in `localStorage`. The JWT stays valid until it expi
 
 **Seed logins**
 
-| email | password | flags | document codes |
+| email | password | flags | codes |
 |---|---|---|---|
 | `admin@rolekit.dev` | `adminpass` | `is_admin` | none |
-| `viewer@rolekit.dev` | `viewerpass` | | `documents:read` |
-| `editor@rolekit.dev` | `editorpass` | | read, write, edit |
+| `viewer@rolekit.dev` | `viewerpass` | | read documents, notes, announcements |
+| `editor@rolekit.dev` | `editorpass` | | write/edit those three; no delete |
+| `auditor@rolekit.dev` | `auditorpass` | | those reads + `audit:read` |
 | `demo1@rolekit.dev` | `demopass` | | none |
 | `demo2@rolekit.dev` | `demopass` | | none |
 
-Smoke viewer and admin after seed. Admin can open Roles/Users but `GET /documents` is 403 until you grant a document role. That is intentional: `is_admin` is not a document superuser.
+Seed also creates a `desk` role (settings + announcement CRUD). Assign it from Users. `is_admin` still does not unlock documents.
+
+The roles page is a matrix: documents, notes, announcements, audit, settings. Saving still sends the **full** checked set. `GET /permissions` is the frozen catalog. The UI cannot invent codes.
 
 ---
 

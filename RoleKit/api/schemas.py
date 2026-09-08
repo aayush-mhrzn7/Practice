@@ -59,17 +59,17 @@ class RoleOut(BaseModel):
     permissions: list[str] = []
 
 
-class DocumentCreate(BaseModel):
+class TitledCreate(BaseModel):
     title: str = Field(min_length=1)
     body: str = ""
 
 
-class DocumentUpdate(BaseModel):
+class TitledUpdate(BaseModel):
     title: str | None = None
     body: str | None = None
 
 
-class DocumentOut(BaseModel):
+class TitledOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -77,3 +77,36 @@ class DocumentOut(BaseModel):
     body: str
     owner_id: int
     created_at: datetime
+
+
+class PermissionItem(BaseModel):
+    code: str
+    label: str
+
+
+class PermissionGroupOut(BaseModel):
+    key: str
+    label: str
+    permissions: list[PermissionItem]
+
+
+class AuditEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    actor_id: int | None
+    action: str
+    detail: str
+    created_at: datetime
+
+
+class SettingOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    workspace_name: str
+    banner: str
+
+
+class SettingUpdate(BaseModel):
+    workspace_name: str | None = None
+    banner: str | None = None

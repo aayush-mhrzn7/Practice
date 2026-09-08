@@ -62,16 +62,18 @@ a {
   background: rgba(18, 17, 14, 0.9);
   position: sticky;
   top: 0;
+  flex-wrap: wrap;
+}
+
+nav {
+  display: flex;
+  gap: 0.85rem 1rem;
+  flex-wrap: wrap;
 }
 
 .brand {
   color: var(--text);
   font-size: 1.25rem;
-}
-
-nav {
-  display: flex;
-  gap: 1rem;
 }
 
 nav a {
@@ -104,6 +106,10 @@ nav a:hover {
   max-width: 820px;
   margin: 0 auto;
   padding: 2rem 1.25rem 4rem;
+}
+
+.page.wide {
+  max-width: 980px;
 }
 
 .auth {
@@ -263,4 +269,103 @@ button:disabled {
 
 code {
   font-size: 0.85em;
+}
+
+.matrix {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.perm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.perm-table th,
+.perm-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.7rem 0.65rem;
+  text-align: center;
+}
+
+.perm-table thead th {
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.perm-table tbody th {
+  text-align: left;
+  font-weight: 500;
+}
+
+.cell-check {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+}
+
+.cell-check input {
+  width: auto;
+  margin: 0;
+}
+
+.dash-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-bottom: 1.5rem;
+}
+
+.dash-card {
+  color: inherit;
+}
+
+.dash-card h2 {
+  margin-bottom: 0.3rem;
+}
+
+.ok-text {
+  color: var(--ok);
+  margin: 0;
+}
+
+.chip-block h2 {
+  margin: 1.2rem 0 0.5rem;
+}
+
+.chips {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+}
+
+.chip.on {
+  color: var(--text);
+  border-color: #5a4633;
+  background: #241d14;
+}
+
+.chip span {
+  font-size: 0.75rem;
+  color: var(--muted);
 }
