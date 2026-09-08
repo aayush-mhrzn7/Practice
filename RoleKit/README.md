@@ -4,7 +4,9 @@ A one-day learning bar: a small admin for **named roles**. Not a product. No Cel
 
 The JWT only carries your **user id**. Every protected route reloads roles and permissions from SQLAlchemy. The checkboxes never authorize anything by themselves.
 
-This README is the map of how RoleKit works. The code is already in `api/` and `web/`. Use the evenings as a walkthrough of the design, then cold-start and prove a 403.
+This README is the original build map. **Start with [flow.md](flow.md)** — it explains every file (especially `deps.py`) and the request path.
+
+The running app is documents + audit only. No seed: the first registered user is admin.
 
 ---
 
@@ -29,31 +31,27 @@ Reshape the current files into this. Today you have `main.py`, `database/`, and 
 
 ```
 RoleKit/
+  flow.md            # start here: request path + why each file exists
   api/
-    main.py          # FastAPI, CORS, include routers
-    database.py      # engine, SessionLocal, get_db
-    models.py        # User, Role, Permission, Document, two M2Ms
-    schemas.py       # Pydantic in/out, ConfigDict(from_attributes=True)
-    auth.py          # hash, verify, create/decode JWT, get_current_user
-    deps.py          # require_permission("documents:edit")
+    main.py
+    database.py
+    models.py
+    schemas.py
+    auth.py          # JWT sub = user id
+    deps.py          # require_permission — reload codes from SQL
     routers/
-      auth.py        # register, login, /me
-      roles.py       # name a role, set the four checks
-      users.py       # grant/revoke roles
-      documents.py  # the gated resource
-    seed.py
+      auth.py
+      roles.py
+      users.py
+      documents.py
+      audit.py
   alembic/
-  web/               # Vite + React + TypeScript
-    src/pages/Home.tsx
-    src/pages/Login.tsx
-    src/pages/Documents.tsx
-    src/pages/Notes.tsx
-    src/pages/Announcements.tsx
-    src/pages/Audit.tsx
-    src/pages/Settings.tsx
-    src/pages/Roles.tsx
-    src/pages/Users.tsx
-  README.md
+  web/src/pages/
+    Login.tsx
+    Documents.tsx
+    Audit.tsx
+    Roles.tsx
+    Users.tsx
 ```
 
 The tree above is what is in this folder. Run from `RoleKit/`. Uvicorn loads `api.main:app`.
@@ -685,7 +683,6 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 alembic upgrade head
-python -m api.seed
 uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
 ```
 

@@ -1,6 +1,16 @@
+/**
+ * api.ts — one fetch helper for the whole UI.
+ *
+ * Every call attaches Authorization: Bearer <token> when localStorage has one.
+ * Logout only clears that key; the JWT stays valid on the server until exp.
+ *
+ * 403 bodies become ApiError with status 403 so pages can show "no permission".
+ * Default API origin is the uvicorn port. Change this if you bind another port.
+ */
+
 import type { TokenOut } from "./types";
 
-const API = "http://localhost:1111";
+const API = "http://localhost:8000";
 const TOKEN_KEY = "rolekit_token";
 
 export class ApiError extends Error {

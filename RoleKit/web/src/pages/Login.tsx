@@ -1,3 +1,7 @@
+/**
+ * Login.tsx — store the JWT, then go to documents.
+ * Create account hits POST /auth/register; the first user in an empty DB is admin.
+ */
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, isApiError, login, setToken } from "../api";

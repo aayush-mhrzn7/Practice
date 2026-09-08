@@ -1,3 +1,14 @@
+"""
+schemas.py — request/response shapes.
+
+Why Pydantic here and SQLAlchemy in models.py
+    Models are tables. Schemas are JSON in and out.
+    from_attributes=True lets us return an ORM row and FastAPI dumps it to JSON.
+
+We never put permission codes on TokenOut. The token is only access_token;
+GET /me reloads codes from SQL so a revoke is visible immediately.
+"""
+
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -21,6 +32,8 @@ class RoleBrief(BaseModel):
 
 
 class UserOut(BaseModel):
+    """What GET /me returns. permissions is computed, not stored on User."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -47,6 +60,8 @@ class RoleCreate(BaseModel):
 
 
 class RoleUpdate(BaseModel):
+    """permissions is the full set of checked codes, not a single toggle."""
+
     name: str | None = None
     permissions: list[str] | None = None
 

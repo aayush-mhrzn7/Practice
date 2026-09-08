@@ -1,3 +1,6 @@
+/**
+ * main.tsx — mount the tree. BrowserRouter is required for App.tsx routes.
+ */
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

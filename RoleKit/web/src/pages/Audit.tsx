@@ -1,3 +1,6 @@
+/**
+ * Audit.tsx — GET /audit. 403 → "no permission" if audit:read is missing.
+ */
 import { useEffect, useState } from "react";
 import { api, isApiError } from "../api";
 import type { AuditEvent } from "../types";

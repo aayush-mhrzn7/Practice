@@ -1,3 +1,13 @@
+"""
+routers/users.py — grant and revoke.
+
+Grant  POST   /users/{id}/roles/{role_id}  → insert user_roles
+Revoke DELETE /users/{id}/roles/{role_id}  → delete that row
+
+The user's JWT does not change. The next documents/audit request
+reloads codes in deps.py and 403s if the revoked role owned them.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 

@@ -1,3 +1,9 @@
+/**
+ * App.tsx — shell: token, GET /me, nav, routes.
+ *
+ * me.permissions come from SQL via /me, not from the JWT.
+ * After revoke, navigating (or any request) reloads me and the 403s change.
+ */
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { api, clearToken, getToken } from "./api";

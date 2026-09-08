@@ -1,3 +1,15 @@
+"""
+routers/documents.py — the gated resource.
+
+Each verb has its own code. Hiding a button in React is not enough:
+a raw fetch with a viewer token still hits these Depends and gets 403.
+
+    GET    documents:read
+    POST   documents:write   (create)
+    PATCH  documents:edit    (update)
+    DELETE documents:delete  → 204
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 

@@ -1,3 +1,8 @@
+/**
+ * Roles.tsx — permission matrix.
+ * Checkboxes map to frozen codes. Save sends the full checked list
+ * (PATCH /roles/{id} { name, permissions }). Uncheck = omit from that list.
+ */
 import { useEffect, useState, type FormEvent } from "react";
 import { api, isApiError } from "../api";
 import type { RoleOut } from "../types";

@@ -1,3 +1,22 @@
+"""
+models.py — the tables.
+
+Shape
+    User ──< user_roles >── Role ──< role_permissions >── Permission
+      │
+      └── documents.owner_id
+    AuditEvent is a log row, not part of the grant graph.
+
+Why association tables instead of a column on User
+    A user can have many roles. A role can have many permissions.
+    Grant = insert a user_roles row. Revoke = delete that row.
+    The JWT never stores this graph, so the next request re-reads it.
+
+PERMISSION_CODES
+    Frozen list. Alembic inserts matching rows. The roles UI ticks these
+    strings; unknown codes are rejected in routers/roles.py.
+"""
+
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table, UniqueConstraint, func
@@ -5,7 +24,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.database import Base
 
-# These rows are inserted by Alembic. The UI must not invent new codes.
 PERMISSION_CODES = [
     "documents:read",
     "documents:write",
@@ -14,6 +32,7 @@ PERMISSION_CODES = [
     "audit:read",
 ]
 
+# Many-to-many: which users have which roles.
 user_roles = Table(
     "user_roles",
     Base.metadata,
@@ -21,6 +40,7 @@ user_roles = Table(
     Column("role_id", Integer, ForeignKey("roles.id"), primary_key=True),
 )
 
+# Many-to-many: which roles have which permission codes.
 role_permissions = Table(
     "role_permissions",
     Base.metadata,
@@ -30,6 +50,11 @@ role_permissions = Table(
 
 
 class User(Base):
+    """
+    An account. is_admin only unlocks /roles and /users (the matrix).
+    Document and audit access come from roles, not from this flag.
+    """
+
     __tablename__ = "users"
     __table_args__ = (UniqueConstraint("email", name="uq_users_email"),)
 
@@ -43,6 +68,8 @@ class User(Base):
 
 
 class Permission(Base):
+    """One frozen code, e.g. documents:read. The UI cannot create new rows."""
+
     __tablename__ = "permissions"
     __table_args__ = (UniqueConstraint("code", name="uq_permissions_code"),)
 
@@ -53,6 +80,8 @@ class Permission(Base):
 
 
 class Role(Base):
+    """A name you type (viewer, night-editor) plus a set of permission rows."""
+
     __tablename__ = "roles"
     __table_args__ = (UniqueConstraint("name", name="uq_roles_name"),)
 
@@ -68,6 +97,8 @@ class Role(Base):
 
 
 class Document(Base):
+    """The gated resource. Enough CRUD to prove a 403."""
+
     __tablename__ = "documents"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -80,6 +111,8 @@ class Document(Base):
 
 
 class AuditEvent(Base):
+    """Append-only log of role create / replace / grant / revoke."""
+
     __tablename__ = "audit_events"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

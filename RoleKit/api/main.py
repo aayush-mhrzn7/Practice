@@ -1,3 +1,15 @@
+"""
+main.py — assemble the app.
+
+CORS is locked to the Vite origin. The browser sends Authorization: Bearer
+from localhost:5173; without this middleware the preflight fails.
+
+Routers are included in one place so you can see the whole HTTP surface:
+    /auth/register, /auth/login, /me
+    /roles, /users/.../roles/...
+    /documents, /audit
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

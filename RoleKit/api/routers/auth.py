@@ -1,3 +1,18 @@
+"""
+routers/auth.py — register, login, /me.
+
+Register
+    First user in an empty users table gets is_admin=True so you can
+    open Roles without a seed script. Later users are not admin.
+
+Login
+    Hash check → JWT with sub=id. Bad password is 401.
+
+GET /me
+    UI uses this to know is_admin (show Roles/Users nav) and permission
+    codes (show create form, still 403 on the server if you forge a call).
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -12,6 +27,7 @@ router = APIRouter(tags=["auth"])
 
 
 def user_out(db: Session, user: User) -> UserOut:
+    """Attach live permission codes from SQL, not from the token."""
     return UserOut(
         id=user.id,
         email=user.email,
@@ -22,7 +38,6 @@ def user_out(db: Session, user: User) -> UserOut:
 
 @router.post("/auth/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(body: UserCreate, db: Session = Depends(get_db)):
-    # First account becomes admin so you do not need a seed script.
     first_user = db.query(User).count() == 0
     user = User(
         email=body.email.strip().lower(),

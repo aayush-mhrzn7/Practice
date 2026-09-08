@@ -1,3 +1,7 @@
+/**
+ * Users.tsx — grant/revoke by diffing checked role ids vs current grants.
+ * POST adds a user_roles row; DELETE removes it. Token is unchanged.
+ */
 import { useEffect, useState, type FormEvent } from "react";
 import { api, isApiError } from "../api";
 import type { RoleOut, UserList } from "../types";

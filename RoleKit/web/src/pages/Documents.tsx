@@ -1,3 +1,8 @@
+/**
+ * Documents.tsx — UI for the gated resource.
+ * canWrite only hides the create form. Try edit / Try delete still fire
+ * PATCH/DELETE so a missing server check would be obvious.
+ */
 import { useEffect, useState, type FormEvent } from "react";
 import { api, isApiError } from "../api";
 import type { DocumentOut, UserMe } from "../types";

@@ -1,3 +1,13 @@
+"""
+routers/roles.py — name a role and replace its permission set.
+
+Admin-only (is_admin). PATCH sends the full list of checked codes.
+Unchecking Edit means the list arrives without documents:edit.
+We never toggle one code on the server — that makes uncheck easy to get wrong.
+
+Unknown codes → 400. Duplicate name → 409.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload

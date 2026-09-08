@@ -1,3 +1,4 @@
+/** types.ts — JSON shapes matching api/schemas.py. */
 export type UserMe = {
   id: number;
   email: string;
