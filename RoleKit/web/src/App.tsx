@@ -1,14 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { api, clearToken, getToken } from "./api";
-import Announcements from "./pages/Announcements";
 import Audit from "./pages/Audit";
 import Documents from "./pages/Documents";
-import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Notes from "./pages/Notes";
 import Roles from "./pages/Roles";
-import SettingsPage from "./pages/Settings";
 import Users from "./pages/Users";
 import type { UserMe } from "./types";
 
@@ -51,16 +47,12 @@ export default function App() {
     <div className="shell">
       {getToken() && me && (
         <header className="topbar">
-          <Link to="/" className="brand">
+          <Link to="/documents" className="brand">
             RoleKit
           </Link>
           <nav>
-            <Link to="/">Desk</Link>
             <Link to="/documents">Documents</Link>
-            <Link to="/notes">Notes</Link>
-            <Link to="/announcements">Board</Link>
             <Link to="/audit">Audit</Link>
-            <Link to="/settings">Settings</Link>
             {me.is_admin && <Link to="/roles">Roles</Link>}
             {me.is_admin && <Link to="/users">Users</Link>}
           </nav>
@@ -77,34 +69,10 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login onAuthed={loadMe} />} />
         <Route
-          path="/"
-          element={
-            <Protected me={me}>
-              {me && <Home me={me} />}
-            </Protected>
-          }
-        />
-        <Route
           path="/documents"
           element={
             <Protected me={me}>
               {me && <Documents me={me} />}
-            </Protected>
-          }
-        />
-        <Route
-          path="/notes"
-          element={
-            <Protected me={me}>
-              {me && <Notes me={me} />}
-            </Protected>
-          }
-        />
-        <Route
-          path="/announcements"
-          element={
-            <Protected me={me}>
-              {me && <Announcements me={me} />}
             </Protected>
           }
         />
@@ -117,18 +85,10 @@ export default function App() {
           }
         />
         <Route
-          path="/settings"
-          element={
-            <Protected me={me}>
-              {me && <SettingsPage me={me} />}
-            </Protected>
-          }
-        />
-        <Route
           path="/roles"
           element={
             <Protected me={me}>
-              {me?.is_admin ? <Roles /> : <Navigate to="/" replace />}
+              {me?.is_admin ? <Roles /> : <Navigate to="/documents" replace />}
             </Protected>
           }
         />
@@ -136,11 +96,11 @@ export default function App() {
           path="/users"
           element={
             <Protected me={me}>
-              {me?.is_admin ? <Users /> : <Navigate to="/" replace />}
+              {me?.is_admin ? <Users /> : <Navigate to="/documents" replace />}
             </Protected>
           }
         />
-        <Route path="*" element={<Navigate to={getToken() ? "/" : "/login"} replace />} />
+        <Route path="*" element={<Navigate to={getToken() ? "/documents" : "/login"} replace />} />
       </Routes>
     </div>
   );

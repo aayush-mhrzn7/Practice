@@ -11,7 +11,7 @@ export default function Audit() {
       .then(({ data }) => setEvents(data))
       .catch((err: unknown) => {
         setEvents([]);
-        setError(isApiError(err) && err.status === 403 ? "no permission" : err instanceof Error ? err.message : "Request failed");
+        setError(isApiError(err) && err.status === 403 ? "no permission" : "Request failed");
       });
   }, []);
 
@@ -19,8 +19,7 @@ export default function Audit() {
     <main className="page">
       <h1>Audit</h1>
       <p className="lede">
-        Grants, revokes, and role replacements land here. Requires <code>audit:read</code>. The
-        JWT is not a log.
+        Role create / replace / grant / revoke. Needs <code>audit:read</code>.
       </p>
       {error && <p className="banner error">{error}</p>}
       <ul className="doc-list">
@@ -29,7 +28,7 @@ export default function Audit() {
             <h2>{event.action}</h2>
             <p>{event.detail}</p>
             <p className="muted">
-              #{event.id} · actor {event.actor_id ?? "—"} · {event.created_at}
+              actor {event.actor_id ?? "—"} · {event.created_at}
             </p>
           </li>
         ))}

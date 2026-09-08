@@ -1,30 +1,47 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { isApiError, login, setToken } from "../api";
-import type { TokenOut } from "../types";
+import { api, isApiError, login, setToken } from "../api";
 
 type LoginProps = {
   onAuthed: () => Promise<void>;
 };
 
 export default function Login({ onAuthed }: LoginProps) {
-  const [email, setEmail] = useState("viewer@rolekit.dev");
-  const [password, setPassword] = useState("viewerpass");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
-  async function onSubmit(event: FormEvent) {
+  async function afterToken(token: string) {
+    setToken(token);
+    await onAuthed();
+    navigate("/documents");
+  }
+
+  async function onLogin(event: FormEvent) {
     event.preventDefault();
     setError("");
     setBusy(true);
     try {
-      const data: TokenOut = await login(email, password);
-      setToken(data.access_token);
-      await onAuthed();
-      navigate("/");
+      const { data } = await login(email, password);
+      await afterToken(data.access_token);
     } catch (err) {
       setError(isApiError(err) && err.status === 401 ? "Invalid credentials" : err instanceof Error ? err.message : "Request failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onRegister() {
+    setError("");
+    setBusy(true);
+    try {
+      await api("/auth/register", { method: "POST", body: { email, password } });
+      const { data } = await login(email, password);
+      await afterToken(data.access_token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Request failed");
     } finally {
       setBusy(false);
     }
@@ -33,12 +50,13 @@ export default function Login({ onAuthed }: LoginProps) {
   return (
     <main className="auth">
       <div className="card">
-        <p className="kicker">Named roles, not a product</p>
+        <p className="kicker">Named roles</p>
         <h1>RoleKit</h1>
         <p className="lede">
-          The JWT only carries your user id. Checkboxes never authorize anything by themselves.
+          JWT only stores your user id. First account is admin. Then create a role, tick codes, and
+          assign it.
         </p>
-        <form onSubmit={onSubmit}>
+        <form onSubmit={onLogin}>
           <label>
             Email
             <input value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
@@ -53,28 +71,15 @@ export default function Login({ onAuthed }: LoginProps) {
             />
           </label>
           {error && <p className="banner error">{error}</p>}
-          <button type="submit" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
+          <div className="row">
+            <button type="submit" disabled={busy}>
+              Sign in
+            </button>
+            <button type="button" className="ghost" disabled={busy} onClick={() => void onRegister()}>
+              Create account
+            </button>
+          </div>
         </form>
-        <dl className="hints">
-          <div>
-            <dt>viewer@rolekit.dev</dt>
-            <dd>viewerpass — read docs, notes, board</dd>
-          </div>
-          <div>
-            <dt>editor@rolekit.dev</dt>
-            <dd>editorpass — write/edit; no delete</dd>
-          </div>
-          <div>
-            <dt>auditor@rolekit.dev</dt>
-            <dd>auditorpass — reads + audit log</dd>
-          </div>
-          <div>
-            <dt>admin@rolekit.dev</dt>
-            <dd>adminpass — roles UI, no resource codes</dd>
-          </div>
-        </dl>
       </div>
     </main>
   );

@@ -17,5 +17,5 @@ def list_audit(
     return db.query(AuditEvent).order_by(AuditEvent.id.desc()).limit(100).all()
 
 
-def record(db: Session, actor_id: int, action: str, detail: str) -> None:
+def add_audit(db: Session, actor_id: int, action: str, detail: str) -> None:
     db.add(AuditEvent(actor_id=actor_id, action=action, detail=detail))

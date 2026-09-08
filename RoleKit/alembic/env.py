@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from api.database import Base
-from api.models import Announcement, AuditEvent, Document, Note, Permission, Role, Setting, User  # noqa: F401
+from api.models import AuditEvent, Document, Permission, Role, User  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

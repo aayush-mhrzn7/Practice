@@ -5,13 +5,13 @@ from sqlalchemy.orm import Session, selectinload
 from api.database import get_db
 from api.deps import require_admin
 from api.models import PERMISSION_CODES, Permission, Role, User
-from api.routers.audit import record
+from api.routers.audit import add_audit
 from api.schemas import RoleCreate, RoleOut, RoleUpdate
 
 router = APIRouter(prefix="/roles", tags=["roles"])
 
 
-def _role_out(role: Role) -> RoleOut:
+def role_out(role: Role) -> RoleOut:
     return RoleOut(
         id=role.id,
         name=role.name,
@@ -20,17 +20,9 @@ def _role_out(role: Role) -> RoleOut:
 
 
 @router.get("", response_model=list[RoleOut])
-def list_roles(
-    _: User = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
-    roles = (
-        db.query(Role)
-        .options(selectinload(Role.permissions))
-        .order_by(Role.name)
-        .all()
-    )
-    return [_role_out(role) for role in roles]
+def list_roles(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    roles = db.query(Role).options(selectinload(Role.permissions)).order_by(Role.name).all()
+    return [role_out(role) for role in roles]
 
 
 @router.post("", response_model=RoleOut, status_code=status.HTTP_201_CREATED)
@@ -47,9 +39,9 @@ def create_role(
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Role name already exists")
     db.refresh(role)
-    record(db, admin.id, "role.create", role.name)
+    add_audit(db, admin.id, "role.create", role.name)
     db.commit()
-    return _role_out(role)
+    return role_out(role)
 
 
 @router.patch("/{role_id}", response_model=RoleOut)
@@ -69,15 +61,11 @@ def update_role(
     if body.permissions is not None:
         unknown = [code for code in body.permissions if code not in PERMISSION_CODES]
         if unknown:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unknown permission codes: {unknown}",
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown permission codes")
         if body.permissions:
-            perms = db.query(Permission).filter(Permission.code.in_(body.permissions)).all()
+            role.permissions = db.query(Permission).filter(Permission.code.in_(body.permissions)).all()
         else:
-            perms = []
-        role.permissions = perms
+            role.permissions = []
 
     try:
         db.commit()
@@ -85,7 +73,6 @@ def update_role(
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Role name already exists")
     db.refresh(role)
-    codes = ", ".join(sorted(p.code for p in role.permissions)) or "none"
-    record(db, admin.id, "role.replace", f"{role.name}: {codes}")
+    add_audit(db, admin.id, "role.replace", f"{role.name}: {', '.join(role_out(role).permissions) or 'none'}")
     db.commit()
-    return _role_out(role)
+    return role_out(role)
