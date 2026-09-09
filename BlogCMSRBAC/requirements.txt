@@ -1,0 +1,6 @@
+fastapi[standard]
+sqlalchemy
+pyjwt
+alembic
+bcrypt
+python-dotenv
